@@ -99,20 +99,32 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
 
 
 # Read in cars and notcars
-images = glob.glob(r'C:\Users\ROEE\Google Drive\selfDrivingCourse\20_Object_detection\images\smallset\*\*\*\*.jpeg',recursive=True)
+UseFullSet=True
+if not UseFullSet:
+    images = glob.glob(r'C:\Users\ROEE\Google Drive\selfDrivingCourse\20_Object_detection\images\smallset\*\*\*\*.jpeg',recursive=True)
+    delimiterStr=r'smallset'
+else:
+    images = glob.glob(r'C:\Users\ROEE\Google Drive\selfDrivingCourse\20_Object_detection\images\fullset\*\*\*\*.png',recursive=True)
+    delimiterStr = r'fullset'
+
 cars = []
 notcars = []
-
-for image in images:
-    tmp=image.split(r'smallset')[-1]
-    if 'image' in tmp or 'extra' in tmp:
-        notcars.append(image)
-    else:
-        cars.append(image)
-
+if not UseFullSet:
+    for image in images:
+        tmp=image.split(delimiterStr)[-1]
+        if 'image' in tmp or 'extra' in tmp:
+            notcars.append(image)
+        else:
+            cars.append(image)
+else:
+    for image in images:
+        if r'non-vehicles' in image:
+            notcars.append(image)
+        else:
+            cars.append(image)
 # Reduce the sample size because
 # The quiz evaluator times out after 13s of CPU time
-sample_size = 2200
+sample_size = -1 #2200
 cars = cars[0:sample_size]
 notcars = notcars[0:sample_size]
 
@@ -164,7 +176,7 @@ print('Using:', orient, 'orientations', pix_per_cell,
 print('Feature vector length:', len(X_train[0]))
 # Use a linear SVC
 #svc = svm.SVC(C=10.0, kernel='rbf')
-svc = LinearSVC()
+svc = LinearSVC(C=5.0)
 # Check the training time for the SVC
 t = time.time()
 svc.fit(X_train, y_train)
@@ -190,7 +202,8 @@ draw_image = np.copy(image)
 # Uncomment the following line if you extracted training
 # data from .png images (scaled 0 to 1 by mpimg) and the
 # image you are searching is a .jpg (scaled 0 to 255)
-# image = image.astype(np.float32)/255
+if UseFullSet:
+    image = image.astype(np.float32)/255
 
 windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
                        xy_window=(96, 96), xy_overlap=(0.7, 0.7))
