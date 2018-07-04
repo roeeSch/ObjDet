@@ -13,6 +13,8 @@ from search_classify_hlpr import *
 # for scikit-learn >= 0.18 use:
 from sklearn.model_selection import train_test_split
 # from sklearn.cross_validation import train_test_split
+from falsePos_and_MultDet_filter import *
+from scipy.ndimage.measurements import label
 
 
 # Define a function to extract features from a single image window
@@ -217,7 +219,33 @@ hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_sp
 
 window_img = draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)
 
+
+
 plt.imshow(window_img)
 plt.show()
 
+# Multiple detections and false positive filter:
 
+heat = np.zeros_like(image[:, :, 0]).astype(np.float)
+# Add heat to each box in hot_windows
+heat = add_heat(heat, hot_windows)
+
+# Apply threshold to help remove false positives
+heat = apply_threshold(heat, 1)
+
+# Visualize the heatmap when displaying
+heatmap = np.clip(heat, 0, 255)
+
+# Find final boxes from heatmap using label function
+labels = label(heatmap)
+draw_img = draw_labeled_bboxes(np.copy(image), labels)
+
+fig = plt.figure()
+plt.subplot(121)
+plt.imshow(draw_img)
+plt.title('Car Positions')
+plt.subplot(122)
+plt.imshow(heatmap, cmap='hot')
+plt.title('Heat Map')
+fig.tight_layout()
+plt.show()

@@ -14,7 +14,7 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block,
                                   block_norm='L2-Hys',
                                   cells_per_block=(cell_per_block, cell_per_block),
                                   transform_sqrt=True,
-                                  visualise=vis, feature_vector=feature_vec)
+                                  visualize=vis, feature_vector=feature_vec)
         return features, hog_image
     # Otherwise call with one output
     else:
@@ -23,7 +23,7 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block,
                        cells_per_block=(cell_per_block, cell_per_block),
                        block_norm='L2-Hys',
                        transform_sqrt=True,
-                       visualise=vis, feature_vector=feature_vec)
+                       visualize=vis, feature_vector=feature_vec)
         return features
 
 
