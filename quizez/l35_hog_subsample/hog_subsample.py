@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import cv2
-from hog_subSample_hlpr import *
+from quizez.l35_hog_subsample.hog_subSample_hlpr import *
 
 # load a pe-trained svc model from a serialized (pickle) file
 dist_pickle = pickle.load(open("svc_pickle.p", "rb"))

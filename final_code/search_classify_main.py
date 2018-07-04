@@ -2,9 +2,7 @@ import glob
 import time
 from sklearn.svm import LinearSVC
 from sklearn.preprocessing import StandardScaler
-from final_code.search_classify_hlpr import *
-# NOTE: the next import is only valid for scikit-learn version <= 0.17
-# for scikit-learn >= 0.18 use:
+from search_classify_hlpr import *
 from sklearn.model_selection import train_test_split
 # from sklearn.cross_validation import train_test_split
 from falsePos_and_MultDet_filter import *
