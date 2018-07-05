@@ -138,11 +138,28 @@ if relearnData:
     t = time.time()
 
     with open('scvModel.p', 'wb') as fid:
-        pickle.dump(svc, fid, pickle.HIGHEST_PROTOCOL)
+        pickle.dump({'svc': svc, 'X_scaler': X_scaler,
+                     'color_space': color_space, 'spatial_size': spatial_size,
+                     'hist_bins': hist_bins, 'orient': orient, 'pix_per_cell': pix_per_cell,
+                     'cell_per_block': cell_per_block, 'hog_channel': hog_channel, 'spatial_feat': spatial_feat,
+                     'hist_feat': hist_feat, 'hog_feat': hog_feat}, fid, pickle.HIGHEST_PROTOCOL)
 
 else:
     with open('scvModel.p', 'rb') as fid:
-        svc=pickle.load(fid)
+        dictSVC = pickle.load(fid)
+        svc = dictSVC['svc']
+        X_scaler = dictSVC['X_scaler']
+        color_space = dictSVC['color_space']
+        spatial_size = dictSVC['spatial_size']
+        hist_bins = dictSVC['hist_bins']
+        orient = dictSVC['orient']
+        pix_per_cell = dictSVC['pix_per_cell']
+        cell_per_block = dictSVC['cell_per_block']
+        hog_channel = dictSVC['hog_channel']
+        spatial_feat = dictSVC['spatial_feat']
+        hist_feat = dictSVC['hist_feat']
+        hog_feat = dictSVC['hog_feat']
+
 
 
 images = glob.glob(r'..\..\CarND-Vehicle-Detection\test_images\*.jpg', recursive=True)
@@ -159,7 +176,7 @@ for imageName in images:
     #     image = image.astype(np.float32)/255
     hot_windows = []
     window_img=np.copy(image)
-    for winSz in [128, 96, 80, 64]:
+    for winSz, y_start_stop in zip([128, 96, 80, 64], [[400, 700], [400, 650], [400, 600], [400, 550]]):
 
         windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
                                xy_window=(winSz, winSz), xy_overlap=(0.7, 0.7))
