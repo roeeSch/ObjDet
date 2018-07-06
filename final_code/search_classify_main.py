@@ -10,15 +10,18 @@ from scipy.ndimage.measurements import label
 
 UseFullSet = True
 relearnData = False
+procTestImages = False
+vizData = False
 
+pathToImages = r'C:\Users\ROEE\Google Drive\selfDrivingCourse\20_Object_detection\images'
 
 if relearnData:
     # Read in cars and notcars
     if not UseFullSet:
-        images = glob.glob(r'C:\Users\ROEE\Google Drive\selfDrivingCourse\20_Object_detection\images\smallset\*\*\*\*.jpeg',recursive=True)
-        delimiterStr=r'smallset'
+        images = glob.glob(pathToImages + r'\smallset\*\*\*\*.jpeg', recursive=True)
+        delimiterStr = r'smallset'
     else:
-        images = glob.glob(r'C:\Users\ROEE\Google Drive\selfDrivingCourse\20_Object_detection\images\fullset\*\*\*\*.png',recursive=True)
+        images = glob.glob(pathToImages + r'\fullset\*\*\*\*.png', recursive=True)
         delimiterStr = r'fullset'
 
     cars = []
@@ -36,38 +39,39 @@ if relearnData:
                 notcars.append(image)
             else:
                 cars.append(image)
+
     # Reduce the sample size because
-    # The quiz evaluator times out after 13s of CPU time
-    sample_size = -1 #2200
+    sample_size = -1  # 2200
     cars = cars[0:sample_size]
-    notcars =notcars[0:sample_size]
+    notcars = notcars[0:sample_size]
 
-    # # Visualize images:
-    # visualize_images_colormap(cars, 1)
-    #
-    # visualize_color_channels(cars, 'YCrCb', 4)
-    # visualize_color_channels(cars, 'HSV', 4)
-    # visualize_color_channels(cars, 'YUV', 4)
+    if vizData:  # visualize data
+        # Visualize images:
+        visualize_images_colormap(cars, 1)
 
-    # colorTypes = ['RGB', 'HSV', 'LUV', 'HLS', 'YUV', 'YCrCb']
-    # carNum=3
-    # feature_image = visualize_color_channels(cars, 'RGB', 1, vis=False, imgNum=carNum)
-    # plt.figure()
-    # plt.imshow(feature_image)
-    # plt.draw()
-    # plt.pause(0.001)
-    # for color_space in colorTypes:
-    #     for chnl in range(3):
-    #         feature_image = visualize_color_channels(cars, color_space, 1,vis=False, imgNum=carNum)
-    #         features, hog_image = get_hog_features(feature_image[:,:,chnl], orient=9, pix_per_cell=8, cell_per_block=2,
-    #                              vis=True, feature_vec=True)
-    #         plt.figure()
-    #         plt.imshow(hog_image,cmap='gray')
-    #         plt.title('clr spc=' +  color_space + ', chnl=' + str(chnl))
-    #         plt.draw()
-    #         plt.pause(0.001)
+        visualize_color_channels(cars, 'YCrCb', 4)
+        visualize_color_channels(cars, 'HSV', 4)
+        visualize_color_channels(cars, 'YUV', 4)
 
-    ### TODO: Tweak these parameters and see how the results change.
+        colorTypes = ['RGB', 'HSV', 'LUV', 'HLS', 'YUV', 'YCrCb']
+        carNum=3
+        feature_image = visualize_color_channels(cars, 'RGB', 1, vis=False, imgNum=carNum)
+        plt.figure()
+        plt.imshow(feature_image)
+        plt.draw()
+        plt.pause(0.001)
+        for color_space in colorTypes:
+            for chnl in range(3):
+                feature_image = visualize_color_channels(cars, color_space, 1, vis=False, imgNum=carNum)
+                features, hog_image = get_hog_features(feature_image[:, :, chnl], orient=9, pix_per_cell=8,
+                                                       cell_per_block=2, vis=True, feature_vec=True)
+                plt.figure()
+                plt.imshow(hog_image, cmap='gray')
+                plt.title('clr spc=' + color_space + ', chnl=' + str(chnl))
+                plt.draw()
+                plt.pause(0.001)
+
+    # TODO: Tweak these parameters and see how the results change.
     color_space = 'YCrCb'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
     orient = 9  # HOG orientations
     pix_per_cell = 8  # HOG pixels per cell
@@ -137,12 +141,13 @@ if relearnData:
     # Check the prediction time for a single sample
     t = time.time()
 
-    with open('scvModel.p', 'wb') as fid:
+    with open('scvModel2.p', 'wb') as fid:
         pickle.dump({'svc': svc, 'X_scaler': X_scaler,
                      'color_space': color_space, 'spatial_size': spatial_size,
                      'hist_bins': hist_bins, 'orient': orient, 'pix_per_cell': pix_per_cell,
-                     'cell_per_block': cell_per_block, 'hog_channel': hog_channel, 'spatial_feat': spatial_feat,
-                     'hist_feat': hist_feat, 'hog_feat': hog_feat}, fid, pickle.HIGHEST_PROTOCOL)
+                     'cell_per_block': cell_per_block, 'hog_channel': hog_channel,
+                     'spatial_feat': spatial_feat, 'hist_feat': hist_feat, 'hog_feat': hog_feat},
+                    fid, pickle.HIGHEST_PROTOCOL)
 
 else:
     with open('scvModel.p', 'rb') as fid:
@@ -161,69 +166,64 @@ else:
         hog_feat = dictSVC['hog_feat']
 
 
+if procTestImages:
+    images = glob.glob(r'..\..\ObjDet\test_images\*.jpg', recursive=True)
+    for imageName in images:
+        image = np.asarray(Image.open(imageName))
+        # image = mpimg.imread(imageName)
+        draw_image = np.copy(image)
 
-images = glob.glob(r'..\..\CarND-Vehicle-Detection\test_images\*.jpg', recursive=True)
-for imageName in images:
-    #image = mpimg.imread(r'C:\Users\ROEE\Google Drive\selfDrivingCourse\20_Object_detection\images\bbox-example-image.jpg')
-    image = np.asarray(Image.open(imageName))
-    #image = mpimg.imread(imageName)
-    draw_image = np.copy(image)
+        hot_windows = []
+        window_img = np.copy(image)
+        for winSz, y_start_stop in zip([128, 96, 80, 64], [[400, 700], [400, 650], [400, 600], [400, 550]]):
+            windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
+                                   xy_window=(winSz, winSz), xy_overlap=(0.7, 0.7))
 
-    # # Uncomment the following line if you extracted training
-    # # data from .png images (scaled 0 to 1 by mpimg) and the
-    # # image you are searching is a .jpg (scaled 0 to 255)
-    # if UseFullSet:
-    #     image = image.astype(np.float32)/255
-    hot_windows = []
-    window_img=np.copy(image)
-    for winSz, y_start_stop in zip([128, 96, 80, 64], [[400, 700], [400, 650], [400, 600], [400, 550]]):
+            hot_windows_tmp = search_windows(image, windows, svc, X_scaler, color_space=color_space,
+                                             spatial_size=spatial_size, hist_bins=hist_bins,
+                                             orient=orient, pix_per_cell=pix_per_cell,
+                                             cell_per_block=cell_per_block,
+                                             hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                             hist_feat=hist_feat, hog_feat=hog_feat)
 
-        windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
-                               xy_window=(winSz, winSz), xy_overlap=(0.7, 0.7))
+            hot_windows.extend(hot_windows_tmp)
 
+        window_img = draw_boxes(window_img, hot_windows, color=(0, 0, 255), thick=6)
 
-        hot_windows_tmp = search_windows(image, windows, svc, X_scaler, color_space=color_space,
-                                     spatial_size=spatial_size, hist_bins=hist_bins,
-                                     orient=orient, pix_per_cell=pix_per_cell,
-                                     cell_per_block=cell_per_block,
-                                     hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                     hist_feat=hist_feat, hog_feat=hog_feat)
+        fig = plt.figure()
+        plt.imshow(window_img)
+        plt.draw()
+        plt.pause(0.001)
+        saveFileName = imageName.replace('test_images', 'output_images').split('.jpg')[0] + '_allBBox.png'
+        plt.savefig(saveFileName, dpi=130)
+        # plt.show()
 
-        hot_windows.extend(hot_windows_tmp)
+        # Multiple detections and false positive filter:
 
+        heat = np.zeros_like(image[:, :, 0]).astype(np.float)
+        # Add heat to each box in hot_windows
+        heat = add_heat(heat, hot_windows)
 
-    window_img = draw_boxes(window_img, hot_windows, color=(0, 0, 255), thick=6)
+        # Apply threshold to help remove false positives
+        heat = apply_threshold(heat, 1)
 
-    fig = plt.figure()
-    plt.imshow(window_img)
-    plt.draw()
-    plt.pause(0.001)
-    #plt.show()
+        # Visualize the heatmap when displaying
+        heatmap = np.clip(heat, 0, 255)
 
-    # Multiple detections and false positive filter:
+        # Find final boxes from heatmap using label function
+        labels = label(heatmap)
+        draw_img = draw_labeled_bboxes(np.copy(image), labels)
 
-    heat = np.zeros_like(image[:, :, 0]).astype(np.float)
-    # Add heat to each box in hot_windows
-    heat = add_heat(heat, hot_windows)
-
-    # Apply threshold to help remove false positives
-    heat = apply_threshold(heat, 1)
-
-    # Visualize the heatmap when displaying
-    heatmap = np.clip(heat, 0, 255)
-
-    # Find final boxes from heatmap using label function
-    labels = label(heatmap)
-    draw_img = draw_labeled_bboxes(np.copy(image), labels)
-
-    fig = plt.figure()
-    plt.subplot(121)
-    plt.imshow(draw_img)
-    plt.title('Car Positions')
-    plt.subplot(122)
-    plt.imshow(heatmap, cmap='hot')
-    plt.title('Heat Map')
-    fig.tight_layout()
-    plt.draw()
-    plt.pause(0.001)
-plt.show()
+        plt.figure()
+        plt.subplot(121)
+        plt.imshow(draw_img)
+        plt.title('Car Positions')
+        plt.subplot(122)
+        plt.imshow(heatmap, cmap='hot')
+        plt.title('Heat Map')
+        fig.tight_layout()
+        plt.draw()
+        plt.pause(0.001)
+        saveFileName = imageName.replace('test_images', 'output_images').split('.jpg')[0] + '_heatMapFiltered.png'
+        plt.savefig(saveFileName, dpi=130)
+    plt.show()
