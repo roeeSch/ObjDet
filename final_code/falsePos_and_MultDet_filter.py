@@ -26,6 +26,7 @@ def apply_threshold(heatmap, threshold):
 
 def draw_labeled_bboxes(img, labels):
     # Iterate through all detected cars
+    bbox = ((), ())
     for car_number in range(1, labels[1] + 1):
         # Find pixels with each car_number label value
         nonzero = (labels[0] == car_number).nonzero()
@@ -37,7 +38,7 @@ def draw_labeled_bboxes(img, labels):
         # Draw the box on the image
         cv2.rectangle(img, bbox[0], bbox[1], (0, 0, 255), 6)
     # Return the image
-    return img
+    return img, bbox
 
 if __name__=="__main__":
     # Read in a pickle file with bboxes saved
@@ -73,3 +74,33 @@ if __name__=="__main__":
     plt.title('Heat Map')
     fig.tight_layout()
     plt.show()
+
+
+def get_iou(bb_1,bb_2):
+    bb1 = {'x1': bb_1[0][0], 'y1': bb_1[0][1], 'x2': bb_1[1][0], 'y2': bb_1[1][1]}
+    bb2 = {'x1': bb_2[0][0], 'y1': bb_2[0][1], 'x2': bb_2[1][0], 'y2': bb_2[1][1]}
+
+    # determine the coordinates of the intersection rectangle
+    x_left = max(bb1['x1'], bb2['x1'])
+    y_top = max(bb1['y1'], bb2['y1'])
+    x_right = min(bb1['x2'], bb2['x2'])
+    y_bottom = min(bb1['y2'], bb2['y2'])
+
+    if x_right < x_left or y_bottom < y_top:
+        return 0.0
+
+    # The intersection of two axis-aligned bounding boxes is always an
+    # axis-aligned bounding box
+    intersection_area = (x_right - x_left) * (y_bottom - y_top)
+
+    # compute the area of both AABBs
+    bb1_area = (bb1['x2'] - bb1['x1']) * (bb1['y2'] - bb1['y1'])
+    bb2_area = (bb2['x2'] - bb2['x1']) * (bb2['y2'] - bb2['y1'])
+
+    # compute the intersection over union by taking the intersection
+    # area and dividing it by the sum of prediction + ground-truth
+    # areas - the interesection area
+    iou = intersection_area / float(bb1_area + bb2_area - intersection_area)
+    assert iou >= 0.0
+    assert iou <= 1.0
+    return iou

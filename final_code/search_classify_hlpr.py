@@ -329,3 +329,36 @@ def visualize_color_channels(cars, color_space, numVis, vis=True,imgNum=None):
                 plt.pause(0.001)
 
     return feature_image
+
+def findBoxes(image, dictSVC):
+    window_img = np.copy(image)
+    svc = dictSVC['svc']
+    X_scaler = dictSVC['X_scaler']
+    color_space = dictSVC['color_space']
+    spatial_size = dictSVC['spatial_size']
+    hist_bins = dictSVC['hist_bins']
+    orient = dictSVC['orient']
+    pix_per_cell = dictSVC['pix_per_cell']
+    cell_per_block = dictSVC['cell_per_block']
+    hog_channel = dictSVC['hog_channel']
+    spatial_feat = dictSVC['spatial_feat']
+    hist_feat = dictSVC['hist_feat']
+    hog_feat = dictSVC['hog_feat']
+
+    hot_windows = []
+    for winSz, y_start_stop in zip([128, 96, 80, 64], [[400, 700], [400, 650], [400, 600], [400, 550]]):
+        windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
+                               xy_window=(winSz, winSz), xy_overlap=(0.7, 0.7))
+
+        hot_windows_tmp = search_windows(image, windows, svc, X_scaler, color_space=color_space,
+                                         spatial_size=spatial_size, hist_bins=hist_bins,
+                                         orient=orient, pix_per_cell=pix_per_cell,
+                                         cell_per_block=cell_per_block,
+                                         hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                         hist_feat=hist_feat, hog_feat=hog_feat)
+
+        hot_windows.extend(hot_windows_tmp)
+
+    window_img = draw_boxes(window_img, hot_windows, color=(0, 0, 255), thick=6)
+
+    return window_img, hot_windows

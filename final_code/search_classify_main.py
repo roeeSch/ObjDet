@@ -8,10 +8,13 @@ from sklearn.model_selection import train_test_split
 from falsePos_and_MultDet_filter import *
 from scipy.ndimage.measurements import label
 
-UseFullSet = True
-relearnData = False
-procTestImages = False
-vizData = False
+
+''' The following parameters are used to configure which code will be run. '''
+relearnData = False  # retrain svc on data set
+UseFullSet = True  # Only relevant when relearnData is True
+procTestImages = False  # process the test images
+vizData = False  # visualize some images for better understanding of different parameters.
+procVideo = True  # process the video.
 
 pathToImages = r'C:\Users\ROEE\Google Drive\selfDrivingCourse\20_Object_detection\images'
 
@@ -140,55 +143,25 @@ if relearnData:
     print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
     # Check the prediction time for a single sample
     t = time.time()
+    dictSVC = {'svc': svc, 'X_scaler': X_scaler, 'color_space': color_space, 'spatial_size': spatial_size,
+               'hist_bins': hist_bins, 'orient': orient, 'pix_per_cell': pix_per_cell,
+               'cell_per_block': cell_per_block, 'hog_channel': hog_channel, 'spatial_feat': spatial_feat,
+               'hist_feat': hist_feat, 'hog_feat': hog_feat}
 
     with open('scvModel2.p', 'wb') as fid:
-        pickle.dump({'svc': svc, 'X_scaler': X_scaler,
-                     'color_space': color_space, 'spatial_size': spatial_size,
-                     'hist_bins': hist_bins, 'orient': orient, 'pix_per_cell': pix_per_cell,
-                     'cell_per_block': cell_per_block, 'hog_channel': hog_channel,
-                     'spatial_feat': spatial_feat, 'hist_feat': hist_feat, 'hog_feat': hog_feat},
-                    fid, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(dictSVC, fid, pickle.HIGHEST_PROTOCOL)
 
 else:
     with open('scvModel.p', 'rb') as fid:
         dictSVC = pickle.load(fid)
-        svc = dictSVC['svc']
-        X_scaler = dictSVC['X_scaler']
-        color_space = dictSVC['color_space']
-        spatial_size = dictSVC['spatial_size']
-        hist_bins = dictSVC['hist_bins']
-        orient = dictSVC['orient']
-        pix_per_cell = dictSVC['pix_per_cell']
-        cell_per_block = dictSVC['cell_per_block']
-        hog_channel = dictSVC['hog_channel']
-        spatial_feat = dictSVC['spatial_feat']
-        hist_feat = dictSVC['hist_feat']
-        hog_feat = dictSVC['hog_feat']
 
 
 if procTestImages:
     images = glob.glob(r'..\..\ObjDet\test_images\*.jpg', recursive=True)
     for imageName in images:
         image = np.asarray(Image.open(imageName))
-        # image = mpimg.imread(imageName)
-        draw_image = np.copy(image)
 
-        hot_windows = []
-        window_img = np.copy(image)
-        for winSz, y_start_stop in zip([128, 96, 80, 64], [[400, 700], [400, 650], [400, 600], [400, 550]]):
-            windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
-                                   xy_window=(winSz, winSz), xy_overlap=(0.7, 0.7))
-
-            hot_windows_tmp = search_windows(image, windows, svc, X_scaler, color_space=color_space,
-                                             spatial_size=spatial_size, hist_bins=hist_bins,
-                                             orient=orient, pix_per_cell=pix_per_cell,
-                                             cell_per_block=cell_per_block,
-                                             hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                             hist_feat=hist_feat, hog_feat=hog_feat)
-
-            hot_windows.extend(hot_windows_tmp)
-
-        window_img = draw_boxes(window_img, hot_windows, color=(0, 0, 255), thick=6)
+        window_img, hot_windows = findBoxes(image, dictSVC)
 
         fig = plt.figure()
         plt.imshow(window_img)
@@ -227,3 +200,40 @@ if procTestImages:
         saveFileName = imageName.replace('test_images', 'output_images').split('.jpg')[0] + '_heatMapFiltered.png'
         plt.savefig(saveFileName, dpi=130)
     plt.show()
+
+
+if procVideo:
+    import imageio
+    #vidFileName = r'..\test_video.mp4'
+    vidFileName = r'..\test_video2.mp4'
+    vid = imageio.get_reader(vidFileName)
+    metaData = vid.get_meta_data()
+    L = metaData['nframes']
+    print('Video file name:{}'.format(vidFileName))
+    print('Video attributes:\nnum frames = {}'.format(L))
+    print('source_size = {}'.format(metaData['source_size']))
+    print('plugin = {}'.format(metaData['plugin']))
+    print('fps = {}\n'.format(metaData['fps']))
+    outFileName = vidFileName.replace('.mp4', '_out.mp4')
+    hot_windows_prev = []
+    thresh = 1
+    with imageio.get_writer(outFileName, fps=metaData['fps']) as writer:
+        for i in range(L):
+            im_i = vid.get_data(i)
+            print('processing image ' + str(i) + ' of ' + str(L))
+            window_img, hot_windows = findBoxes(im_i, dictSVC)
+            heat = np.zeros_like(window_img[:, :, 0]).astype(np.float)
+            if len(hot_windows_prev) > 0:
+                heat = add_heat(heat, hot_windows + hot_windows_prev)
+                thresh = 2
+            else:
+                heat = add_heat(heat, hot_windows)
+                # thresh = 1
+            heat = apply_threshold(heat, thresh)
+            heatmap = np.clip(heat, 0, 255)
+            # Find final boxes from heatmap using label function
+            labels = label(heatmap)
+            draw_img, bbox = draw_labeled_bboxes(np.copy(im_i), labels)
+            hot_windows_prev = hot_windows
+            writer.append_data(draw_img)
+
