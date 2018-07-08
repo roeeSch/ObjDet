@@ -153,50 +153,6 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
                                   pix_per_cell, cell_per_block, hog_channel,
                                   spatial_feat, hist_feat, hog_feat)
         features.append(ftr)
-    # # Iterate through the list of images
-    # for file in imgs:
-    #     file_features = []
-    #     # Read in each one by one
-    #     image = np.asarray(Image.open(file))
-    #     #image = mpimg.imread(file)
-    #     # apply color conversion if other than 'RGB'
-    #     if color_space != 'RGB':
-    #         if color_space == 'HSV':
-    #             feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-    #         elif color_space == 'LUV':
-    #             feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)
-    #         elif color_space == 'HLS':
-    #             feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-    #         elif color_space == 'YUV':
-    #             feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
-    #         elif color_space == 'YCrCb':
-    #             feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
-    #     else:
-    #         feature_image = np.copy(image)
-    #
-    #     if spatial_feat == True:
-    #         spatial_features = bin_spatial(feature_image, size=spatial_size)
-    #         file_features.append(spatial_features)
-    #     if hist_feat == True:
-    #         # Apply color_hist()
-    #         hist_features = color_hist(feature_image, nbins=hist_bins, chnl=hog_channel)
-    #         file_features.append(hist_features)
-    #     if hog_feat == True:
-    #         # Call get_hog_features() with vis=False, feature_vec=True
-    #         if hog_channel == 'ALL':
-    #             hog_features = []
-    #             for channel in range(feature_image.shape[2]):
-    #                 hog_features.append(get_hog_features(feature_image[:, :, channel],
-    #                                                      orient, pix_per_cell, cell_per_block,
-    #                                                      vis=False, feature_vec=True))
-    #             hog_features = np.ravel(hog_features)
-    #         else:
-    #             hog_features = get_hog_features(feature_image[:, :, hog_channel], orient,
-    #                                             pix_per_cell, cell_per_block, vis=False, feature_vec=True)
-    #         # Append the new feature vector to the features list
-    #         file_features.append(hog_features)
-    #     features.append(np.concatenate(file_features))
-    # # Return list of feature vectors
     return features
 
 
@@ -204,17 +160,17 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
 # start and stop positions in both x and y,
 # window size (x and y dimensions),
 # and overlap fraction (for both x and y)
-def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
+def slide_window(img_shp, x_start_stop=[None, None], y_start_stop=[None, None],
                  xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
     # If x and/or y start/stop positions not defined, set to image size
     if x_start_stop[0] == None:
         x_start_stop[0] = 0
     if x_start_stop[1] == None:
-        x_start_stop[1] = img.shape[1]
+        x_start_stop[1] = img_shp[1]
     if y_start_stop[0] == None:
         y_start_stop[0] = 0
     if y_start_stop[1] == None:
-        y_start_stop[1] = img.shape[0]
+        y_start_stop[1] = img_shp[0]
     # Compute the span of the region to be searched
     xspan = x_start_stop[1] - x_start_stop[0]
     yspan = y_start_stop[1] - y_start_stop[0]
@@ -330,7 +286,7 @@ def visualize_color_channels(cars, color_space, numVis, vis=True,imgNum=None):
 
     return feature_image
 
-def findBoxes(image, dictSVC):
+def findBoxes(image, dictSVC, windows):
     window_img = np.copy(image)
     svc = dictSVC['svc']
     X_scaler = dictSVC['X_scaler']
@@ -345,19 +301,12 @@ def findBoxes(image, dictSVC):
     hist_feat = dictSVC['hist_feat']
     hog_feat = dictSVC['hog_feat']
 
-    hot_windows = []
-    for winSz, y_start_stop in zip([128, 96, 80, 64], [[400, 700], [400, 650], [400, 600], [400, 550]]):
-        windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
-                               xy_window=(winSz, winSz), xy_overlap=(0.7, 0.7))
-
-        hot_windows_tmp = search_windows(image, windows, svc, X_scaler, color_space=color_space,
-                                         spatial_size=spatial_size, hist_bins=hist_bins,
-                                         orient=orient, pix_per_cell=pix_per_cell,
-                                         cell_per_block=cell_per_block,
-                                         hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                         hist_feat=hist_feat, hog_feat=hog_feat)
-
-        hot_windows.extend(hot_windows_tmp)
+    hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
+                                     spatial_size=spatial_size, hist_bins=hist_bins,
+                                     orient=orient, pix_per_cell=pix_per_cell,
+                                     cell_per_block=cell_per_block,
+                                     hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                     hist_feat=hist_feat, hog_feat=hog_feat)
 
     window_img = draw_boxes(window_img, hot_windows, color=(0, 0, 255), thick=6)
 

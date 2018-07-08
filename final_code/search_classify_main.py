@@ -156,12 +156,27 @@ else:
         dictSVC = pickle.load(fid)
 
 
+# define the search area and grid in images:
+windows = []
+for winSz, y_start_stop in zip([128, 96, 64], [[400, 600], [400, 550], [400, 550]]):
+    windows = windows + \
+              slide_window((720, 1280, 3), x_start_stop=[None, None], y_start_stop=y_start_stop,
+                           xy_window=(winSz, winSz), xy_overlap=(0.7, 0.7))
+
+# visuzlize search area and grid:
+# from PIL import Image
+# image = np.asarray(Image.open(r'..\..\ObjDet\test_images\test4.jpg'))
+# window_img = draw_boxes(image, windows, color=(0, 0, 255), thick=6)
+# plt.figure()
+# plt.imshow(window_img)
+
+
 if procTestImages:
     images = glob.glob(r'..\..\ObjDet\test_images\*.jpg', recursive=True)
     for imageName in images:
         image = np.asarray(Image.open(imageName))
 
-        window_img, hot_windows = findBoxes(image, dictSVC)
+        window_img, hot_windows = findBoxes(image, dictSVC, windows)
 
         fig = plt.figure()
         plt.imshow(window_img)
@@ -204,8 +219,8 @@ if procTestImages:
 
 if procVideo:
     import imageio
-    #vidFileName = r'..\test_video.mp4'
-    vidFileName = r'..\test_video2.mp4'
+    vidFileName = r'..\test_video.mp4'
+    #vidFileName = r'..\test_video2.mp4'
     vid = imageio.get_reader(vidFileName)
     metaData = vid.get_meta_data()
     L = metaData['nframes']
@@ -214,14 +229,14 @@ if procVideo:
     print('source_size = {}'.format(metaData['source_size']))
     print('plugin = {}'.format(metaData['plugin']))
     print('fps = {}\n'.format(metaData['fps']))
-    outFileName = vidFileName.replace('.mp4', '_out.mp4')
+    outFileName = vidFileName.replace('.mp4', '_out2.mp4')
     hot_windows_prev = []
     thresh = 1
     with imageio.get_writer(outFileName, fps=metaData['fps']) as writer:
         for i in range(L):
             im_i = vid.get_data(i)
             print('processing image ' + str(i) + ' of ' + str(L))
-            window_img, hot_windows = findBoxes(im_i, dictSVC)
+            window_img, hot_windows = findBoxes(im_i, dictSVC, windows)
             heat = np.zeros_like(window_img[:, :, 0]).astype(np.float)
             if len(hot_windows_prev) > 0:
                 heat = add_heat(heat, hot_windows + hot_windows_prev)
