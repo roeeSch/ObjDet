@@ -287,7 +287,7 @@ def visualize_color_channels(cars, color_space, numVis, vis=True,imgNum=None):
     return feature_image
 
 def findBoxes(image, dictSVC, windows):
-    window_img = np.copy(image)
+
     svc = dictSVC['svc']
     X_scaler = dictSVC['X_scaler']
     color_space = dictSVC['color_space']
@@ -308,6 +308,4 @@ def findBoxes(image, dictSVC, windows):
                                      hog_channel=hog_channel, spatial_feat=spatial_feat,
                                      hist_feat=hist_feat, hog_feat=hog_feat)
 
-    window_img = draw_boxes(window_img, hot_windows, color=(0, 0, 255), thick=6)
-
-    return window_img, hot_windows
+    return hot_windows

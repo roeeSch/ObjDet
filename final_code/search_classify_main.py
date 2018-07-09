@@ -176,7 +176,8 @@ if procTestImages:
     for imageName in images:
         image = np.asarray(Image.open(imageName))
 
-        window_img, hot_windows = findBoxes(image, dictSVC, windows)
+        hot_windows = findBoxes(image, dictSVC, windows)
+        window_img = draw_boxes(image, hot_windows, color=(0, 0, 255), thick=6)
 
         fig = plt.figure()
         plt.imshow(window_img)
@@ -219,8 +220,8 @@ if procTestImages:
 
 if procVideo:
     import imageio
-    vidFileName = r'..\test_video.mp4'
-    #vidFileName = r'..\test_video2.mp4'
+    #vidFileName = r'..\test_video.mp4'
+    vidFileName = r'..\test_video2.mp4'
     vid = imageio.get_reader(vidFileName)
     metaData = vid.get_meta_data()
     L = metaData['nframes']
@@ -229,15 +230,15 @@ if procVideo:
     print('source_size = {}'.format(metaData['source_size']))
     print('plugin = {}'.format(metaData['plugin']))
     print('fps = {}\n'.format(metaData['fps']))
-    outFileName = vidFileName.replace('.mp4', '_out2.mp4')
+    outFileName = vidFileName.replace('.mp4', '_out.mp4')
     hot_windows_prev = []
     thresh = 1
     with imageio.get_writer(outFileName, fps=metaData['fps']) as writer:
         for i in range(L):
             im_i = vid.get_data(i)
             print('processing image ' + str(i) + ' of ' + str(L))
-            window_img, hot_windows = findBoxes(im_i, dictSVC, windows)
-            heat = np.zeros_like(window_img[:, :, 0]).astype(np.float)
+            hot_windows = findBoxes(im_i, dictSVC, windows)
+            heat = np.zeros_like(im_i[:, :, 0]).astype(np.float)
             if len(hot_windows_prev) > 0:
                 heat = add_heat(heat, hot_windows + hot_windows_prev)
                 thresh = 2
@@ -248,7 +249,7 @@ if procVideo:
             heatmap = np.clip(heat, 0, 255)
             # Find final boxes from heatmap using label function
             labels = label(heatmap)
-            draw_img, bbox = draw_labeled_bboxes(np.copy(im_i), labels)
+            draw_img, bbox = draw_labeled_bboxes(im_i, labels)
             hot_windows_prev = hot_windows
             writer.append_data(draw_img)
 
