@@ -11,10 +11,13 @@ from scipy.ndimage.measurements import label
 
 ''' The following parameters are used to configure which code will be run. '''
 relearnData = False  # retrain svc on data set
+scv_model_name = 'scvModel_spatSz16_hogAll'
 UseFullSet = True  # Only relevant when relearnData is True
 procTestImages = False  # process the test images
-vizData = False  # visualize some images for better understanding of different parameters.
+viz_channels = False  # visualize some images for better understanding of different parameters.
+viz_search_grid = False
 procVideo = True  # process the video.
+vidFileName = r'..\test_video_full.mp4'  # r'..\test_video_full.mp4'
 
 pathToImages = r'C:\Users\ROEE\Google Drive\selfDrivingCourse\20_Object_detection\images'
 
@@ -48,7 +51,7 @@ if relearnData:
     cars = cars[0:sample_size]
     notcars = notcars[0:sample_size]
 
-    if vizData:  # visualize data
+    if viz_channels:  # visualize data
         # Visualize images:
         visualize_images_colormap(cars, 1)
 
@@ -74,25 +77,27 @@ if relearnData:
                 plt.draw()
                 plt.pause(0.001)
 
-    # TODO: Tweak these parameters and see how the results change.
+    # WRITEUP3: feature selection:
     color_space = 'YCrCb'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
     orient = 9  # HOG orientations
     pix_per_cell = 8  # HOG pixels per cell
     cell_per_block = 2  # HOG cells per block
-    hog_channel = 'ALL'  # Can be 0, 1, 2, or "ALL"
-    spatial_size = (32, 32)  # Spatial binning dimensions
+    hog_channel = "ALL"  # Can be 0, 1, 2, or "ALL"
+    spatial_size = (16, 16)  # Spatial binning dimensions
     hist_bins = 16  # Number of histogram bins
     spatial_feat = True  # Spatial features on or off
     hist_feat = True  # Histogram features on or off
     hog_feat = True  # HOG features on or off
-    y_start_stop = [400, None]  # Min and max in y to search in slide_window()
 
+    # WRITEUP1: Extract features from training set:
     car_features = extract_features(cars, color_space=color_space,
                                     spatial_size=spatial_size, hist_bins=hist_bins,
                                     orient=orient, pix_per_cell=pix_per_cell,
                                     cell_per_block=cell_per_block,
                                     hog_channel=hog_channel, spatial_feat=spatial_feat,
                                     hist_feat=hist_feat, hog_feat=hog_feat)
+
+    # WRITEUP2: Extract features from training set:
     notcar_features = extract_features(notcars, color_space=color_space,
                                        spatial_size=spatial_size, hist_bins=hist_bins,
                                        orient=orient, pix_per_cell=pix_per_cell,
@@ -148,27 +153,29 @@ if relearnData:
                'cell_per_block': cell_per_block, 'hog_channel': hog_channel, 'spatial_feat': spatial_feat,
                'hist_feat': hist_feat, 'hog_feat': hog_feat}
 
-    with open('scvModel2.p', 'wb') as fid:
+    with open(scv_model_name + '.p', 'wb') as fid:
         pickle.dump(dictSVC, fid, pickle.HIGHEST_PROTOCOL)
 
 else:
-    with open('scvModel.p', 'rb') as fid:
+    with open(scv_model_name + '.p', 'rb') as fid:
         dictSVC = pickle.load(fid)
 
 
 # define the search area and grid in images:
 windows = []
-for winSz, y_start_stop in zip([128, 96, 64], [[400, 600], [400, 550], [400, 550]]):
+for winSz, y_start_stop in zip([128, 96, 64], [[400, 600], [400, 550], [400, 500]]):
     windows = windows + \
               slide_window((720, 1280, 3), x_start_stop=[None, None], y_start_stop=y_start_stop,
                            xy_window=(winSz, winSz), xy_overlap=(0.7, 0.7))
 
-# visuzlize search area and grid:
-# from PIL import Image
-# image = np.asarray(Image.open(r'..\..\ObjDet\test_images\test4.jpg'))
-# window_img = draw_boxes(image, windows, color=(0, 0, 255), thick=6)
-# plt.figure()
-# plt.imshow(window_img)
+if viz_search_grid:
+    # visuzlize search area and grid:
+    from PIL import Image
+    image = np.asarray(Image.open(r'..\..\ObjDet\test_images\test4.jpg'))
+    window_img = draw_boxes(image, windows[1::4], color=None, thick=2)
+    plt.figure()
+    plt.imshow(window_img)
+    plt.show()
 
 
 if procTestImages:
@@ -183,7 +190,7 @@ if procTestImages:
         plt.imshow(window_img)
         plt.draw()
         plt.pause(0.001)
-        saveFileName = imageName.replace('test_images', 'output_images').split('.jpg')[0] + '_allBBox.png'
+        saveFileName = imageName.replace('test_images', 'output_images').split('.jpg')[0] + '_' + scv_model_name + '_allBBox.png'
         plt.savefig(saveFileName, dpi=130)
         # plt.show()
 
@@ -201,7 +208,7 @@ if procTestImages:
 
         # Find final boxes from heatmap using label function
         labels = label(heatmap)
-        draw_img = draw_labeled_bboxes(np.copy(image), labels)
+        draw_img, _ = draw_labeled_bboxes(np.copy(image), labels)
 
         plt.figure()
         plt.subplot(121)
@@ -220,8 +227,6 @@ if procTestImages:
 
 if procVideo:
     import imageio
-    #vidFileName = r'..\test_video.mp4'
-    vidFileName = r'..\test_video2.mp4'
     vid = imageio.get_reader(vidFileName)
     metaData = vid.get_meta_data()
     L = metaData['nframes']
@@ -230,7 +235,7 @@ if procVideo:
     print('source_size = {}'.format(metaData['source_size']))
     print('plugin = {}'.format(metaData['plugin']))
     print('fps = {}\n'.format(metaData['fps']))
-    outFileName = vidFileName.replace('.mp4', '_out.mp4')
+    outFileName = vidFileName.replace('.mp4', '_' + scv_model_name + '_out.mp4')
     hot_windows_prev = []
     thresh = 1
     with imageio.get_writer(outFileName, fps=metaData['fps']) as writer:

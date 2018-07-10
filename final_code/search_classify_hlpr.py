@@ -138,8 +138,7 @@ def color_hist(img, nbins=32, bins_range=(0, 256), chnl=None):
     return hist_features
 
 
-# Define a function to extract features from a list of images
-# Have this function call bin_spatial() and color_hist()
+# Extract features from a list of images
 def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
                      hist_bins=32, orient=9,
                      pix_per_cell=8, cell_per_block=2, hog_channel=0,
@@ -204,12 +203,16 @@ def slide_window(img_shp, x_start_stop=[None, None], y_start_stop=[None, None],
 
 # Define a function to draw bounding boxes
 def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
+    import random
     # Make a copy of the image
     imcopy = np.copy(img)
     # Iterate through the bounding boxes
     for bbox in bboxes:
         # Draw a rectangle given bbox coordinates
-        cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
+        if color is None:
+            cv2.rectangle(imcopy, bbox[0], bbox[1], tuple([random.randint(0,1)*255 for i in range(3)]), thick)
+        else:
+            cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
     # Return the image copy with boxes drawn
     return imcopy
 
