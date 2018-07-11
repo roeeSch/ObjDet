@@ -8,19 +8,27 @@ from sklearn.model_selection import train_test_split
 from falsePos_and_MultDet_filter import *
 from scipy.ndimage.measurements import label
 
+# ###############################################################################################
+# The following parameters are used to configure which code will be run.
+# ###############################################################################################
 
-''' The following parameters are used to configure which code will be run. '''
+# Learning code switches and configurations:
 relearnData = False  # retrain svc on data set
 scv_model_name = 'scvModel_spatSz16_hogAll'
 UseFullSet = True  # Only relevant when relearnData is True
-procTestImages = False  # process the test images
-viz_channels = False  # visualize some images for better understanding of different parameters.
-viz_search_grid = False
-procVideo = True  # process the video.
-vidFileName = r'..\test_video_full.mp4'  # r'..\test_video_full.mp4'
-
+procTestImages = True  # process the test images
 pathToImages = r'C:\Users\ROEE\Google Drive\selfDrivingCourse\20_Object_detection\images'
+viz_channels = False  # visualize some images for better understanding of different parameters.
 
+# Video processing switches and configurations:
+procVideo = False  # process the video.
+vidFileName = r'..\test_video_full.mp4'  # name of video file to process.
+
+viz_search_grid = False  # visualize sliding window search.
+
+# ###############################################################################################
+# SVC Training code:
+# ###############################################################################################
 if relearnData:
     # Read in cars and notcars
     if not UseFullSet:
@@ -159,6 +167,9 @@ if relearnData:
 else:
     with open(scv_model_name + '.p', 'rb') as fid:
         dictSVC = pickle.load(fid)
+#
+# END of SVC Training code.
+# ###############################################################################################
 
 
 # define the search area and grid in images:
@@ -168,6 +179,7 @@ for winSz, y_start_stop in zip([128, 96, 64], [[400, 600], [400, 550], [400, 500
               slide_window((720, 1280, 3), x_start_stop=[None, None], y_start_stop=y_start_stop,
                            xy_window=(winSz, winSz), xy_overlap=(0.7, 0.7))
 
+# visualize the search area (sliding windows):
 if viz_search_grid:
     # visuzlize search area and grid:
     from PIL import Image
@@ -178,6 +190,9 @@ if viz_search_grid:
     plt.show()
 
 
+# ###############################################################################################
+# Classify test images:
+# ###############################################################################################
 if procTestImages:
     images = glob.glob(r'..\..\ObjDet\test_images\*.jpg', recursive=True)
     for imageName in images:
@@ -225,6 +240,9 @@ if procTestImages:
     plt.show()
 
 
+# ###############################################################################################
+# Classify video and save output:
+# ###############################################################################################
 if procVideo:
     import imageio
     vid = imageio.get_reader(vidFileName)

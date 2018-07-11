@@ -20,9 +20,9 @@ The goals / steps of this project are the following:
 
 ### code overview:
 
-`search_classify_main.py` - bla bla bla TODO: add content
-
-
+`search_classify_main.py` - Main file for running all parts of this project.
+`search_classify_hlpr.py` - Most of the helper functions used by pipeline.
+`falsePos_and_MultDet_filter.py` - Functions for filtering false positives and combining multiple detections.
 
 ### Histogram of Oriented Gradients (HOG)
 
@@ -104,7 +104,7 @@ Ultimately I searched on three scales (128, 96 and 64) using YCrCb 3-channel HOG
 
 In the image above, I plotted all the bounding boxes found by the svc with the sliding windows.
 
-In order to obtain the final bounding boxes, I later applied a heat map image, where every bounding box adds 1 to every pixel inside its bounds. Then I applied a threshold of >1 to the image, to get rid of false positive classifications. On the thresh hold image I used `scipy.ndimage.measurements.label()`to identify separate "blobs" in the image. Then for each label, I found the corresponding bounding box. This process is shown in the following image:
+In order to obtain the final bounding boxes, I later applied a heat map image, where every bounding box adds 1 to every pixel inside its bounds. Then I applied a threshold of >1 to the image, to get rid of false positive classifications. On the thresh hold image I used `scipy.ndimage.measurements.label()`to identify separate "blobs" in the image. Then for each label, I found the corresponding bounding box. This process of obtaining the heatmap is shown in the following image:
 
 ![](output_images\test1_scvModel_spatSz16_hogAll_heatMapFiltered.png)
 
@@ -120,28 +120,14 @@ Another example:
 ### Video Implementation
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](ObjDet\test_video_full_scvModel_spatSz16_hogAll_out.mp4)
+Here's a [link to my video result](test_video_full_scvModel_spatSz16_hogAll_out.mp4)
 
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
-
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
-
-### Here are six frames and their corresponding heatmaps:
-
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
+The only difference between the video pipeline and the stills pipeline is that in the video pipe I used the bounding boxes, found by every pair of sequential frames as input to the heatmap and raised the threshold to >2. This produced good results as can be seen in the video.
 
 
-
----
 
 ### Discussion
 
