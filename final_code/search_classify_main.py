@@ -220,7 +220,7 @@ if procTestImages:
         fig.tight_layout()
         plt.draw()
         plt.pause(0.001)
-        saveFileName = imageName.replace('test_images', 'output_images').split('.jpg')[0] + '_heatMapFiltered.png'
+        saveFileName = imageName.replace('test_images', 'output_images').split('.jpg')[0] + '_' + scv_model_name + '_heatMapFiltered.png'
         plt.savefig(saveFileName, dpi=130)
     plt.show()
 
